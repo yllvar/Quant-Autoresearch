@@ -1,0 +1,32 @@
+name: AlgoTrader Evo CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
+    - name: Set up Python
+      run: uv python install 3.12
+      
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+      
+    - name: Run Tests with Coverage
+      run: |
+        uv run pytest --cov=. --cov-report=xml
+        
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false

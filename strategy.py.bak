@@ -1,0 +1,34 @@
+import pandas as pd
+import numpy as np
+
+class TradingStrategy:
+    def __init__(self, fast_ma=20, slow_ma=50):
+        """
+        Initialize hyperparameters. 
+        The AI Agent can modify these or add new ones here.
+        """
+        self.fast_ma = fast_ma
+        self.slow_ma = slow_ma
+
+    def generate_signals(self, data):
+        """
+        Generates trading signals based on input OHLCV data.
+        Returns a Pandas Series where:
+         1 = Long
+         0 = Cash
+        -1 = Short
+        
+        The 'data' contains: Close, returns, volatility, atr.
+        """
+        # --- EDITABLE REGION BREAK ---
+        # The AI Agent should iterate on the logic below.
+        
+        fast_mavg = data['Close'].rolling(window=self.fast_ma).mean()
+        slow_mavg = data['Close'].rolling(window=self.slow_ma).mean()
+        
+        signals = pd.Series(index=data.index, data=0)
+        signals[fast_mavg > slow_mavg] = 1
+        signals[fast_mavg < slow_mavg] = -1
+        
+        # --- EDITABLE REGION END ---
+        return signals
