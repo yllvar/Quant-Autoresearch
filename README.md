@@ -1,6 +1,6 @@
 # Quant Autoresearch
 
-**Quant Autoresearch** is an institutional-grade, autonomous framework for quantitative strategy discovery. Adapted from the `autoresearch` philosophy and engineered with the **OPENDEV** terminal-agent architecture, it treats the search for alpha as a **long-horizon code evolution problem**.
+**Quant Autoresearch** is an institutional-grade, autonomous framework for quantitative strategy discovery. Adapted from the Karpathy's `autoresearch` philosophy https://github.com/karpathy/autoresearch and engineered with the **OPENDEV** terminal-agent architecture, it treats the search for alpha as a **long-horizon code evolution problem**.
 
 Unlike traditional backtesters that require manual hypothesis testing, Quant Autoresearch deploys a **compound AI system** where specialized sub-agents iterate on strategy logic, grounded in academic literature and real-time market data, while humans define only the constraints (the "Constitution").
 
