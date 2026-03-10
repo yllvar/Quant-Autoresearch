@@ -12,10 +12,10 @@ from .research import get_research_context
 load_dotenv()
 
 # Configuration
-STRATEGY_FILE = "src/strategies/active_strategy.py"
-PROGRAM_FILE = "src/prompts/program.md"
-BACKTEST_RUNNER = "src/core/backtester.py"
-EXPERIMENT_LOG = "experiments/results/experiment_log.json"
+STRATEGY_FILE = os.environ.get("STRATEGY_FILE", "src/strategies/active_strategy.py")
+PROGRAM_FILE = os.environ.get("PROGRAM_FILE", "src/prompts/program.md")
+BACKTEST_RUNNER = os.environ.get("BACKTEST_RUNNER", "src/core/backtester.py")
+EXPERIMENT_LOG = os.environ.get("EXPERIMENT_LOG", "experiments/results/experiment_log.json")
 # The API key is now loaded from the environment/ .env file
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -71,6 +71,7 @@ def save_experiment_log(log):
 
 def log_to_tsv(score, drawdown, trades, status, description):
     results_path = "experiments/results/results.tsv"
+    os.makedirs(os.path.dirname(results_path), exist_ok=True)
     file_exists = os.path.exists(results_path)
     with open(results_path, "a") as f:
         if not file_exists:

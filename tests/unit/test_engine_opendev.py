@@ -4,10 +4,11 @@ from core.engine import QuantAutoresearchEngine
 from safety.guard import SafetyLevel, ApprovalMode
 
 @pytest.fixture
-def engine():
+def engine(tmp_path):
+    db_path = tmp_path / "test_playbook.db"
     with patch("core.engine.Groq"):
         # Mocking dependencies that might try to reach out
-        engine = QuantAutoresearchEngine(safety_level=SafetyLevel.LOW)
+        engine = QuantAutoresearchEngine(safety_level=SafetyLevel.LOW, db_path=str(db_path))
         # Mock core components
         engine.model_router = MagicMock()
         engine.safety_guard = MagicMock()

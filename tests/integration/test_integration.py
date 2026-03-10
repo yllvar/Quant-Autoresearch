@@ -8,7 +8,7 @@ sys.path.append('src')
 from core.engine import QuantAutoresearchEngine
 from context.compactor import ContextCompactor
 from safety.guard import SafetyGuard
-from tools.registry import ToolRegistry
+from tools.registry import LazyToolRegistry
 from tools.bm25_search import BM25SearchTool
 from utils.iteration_tracker import iteration_tracker
 
@@ -33,7 +33,7 @@ def test_all_components():
     
     # Test 3: Tool Registry
     print('3. Testing Tool Registry...')
-    registry = ToolRegistry()
+    registry = LazyToolRegistry()
     result = registry.execute_tool('generate_hypothesis', {'current_score': 1.0})
     print(f'   ✅ Tool execution: {"SUCCESS" if result["success"] else "FAILED"}')
     

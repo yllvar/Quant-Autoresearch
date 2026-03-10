@@ -19,6 +19,8 @@ from models.router import model_router
 from utils.iteration_tracker import iteration_tracker
 from memory.playbook import Playbook
 from tools.registry import LazyToolRegistry, SubagentType
+from data.connector import DataConnector
+from data.preprocessor import prepare_data as prepare_all_data
 
 app = typer.Typer(help="Quant Autoresearch - OPENDEV Autonomous Engine")
 
@@ -30,7 +32,8 @@ def run(
     thinking_model: str = typer.Option("llama-3.1-8b-instant", "--think", help="Model for thinking phase"),
     reasoning_model: str = typer.Option("llama-3.3-70b-versatile", "--reason", help="Model for reasoning phase"),
     lazy_tools: bool = typer.Option(True, "--lazy/--no-lazy", help="Enable lazy tool discovery"),
-    approval_mode: str = typer.Option("semi", "--approval", help="Approval mode: auto, semi, manual")
+    approval_mode: str = typer.Option("semi", "--approval", help="Approval mode: auto, semi, manual"),
+    db: str = typer.Option("experiments/database/playbook.db", "--db", help="Path to playbook database")
 ):
     """Run the autonomous research loop"""
     typer.echo(f"🚀 Initializing OPENDEV Session...")
@@ -41,7 +44,8 @@ def run(
         thinking_model=thinking_model,
         reasoning_model=reasoning_model,
         lazy_tools=lazy_tools,
-        approval_mode=ApprovalMode(approval_mode.lower())
+        approval_mode=ApprovalMode(approval_mode.lower()),
+        db_path=db
     )
     
     asyncio.run(engine.run(max_iterations=iterations))
@@ -105,6 +109,32 @@ def report():
         typer.echo(f"   - Total Cost: ${model_stats['total_cost']:.4f}")
     else:
         typer.echo("No data available. Run the engine first!")
+
+@app.command()
+def fetch(symbol: str, start: str = "2020-01-01"):
+    """Fetch market data for a specific symbol"""
+    typer.echo(f"📥 Fetching data for {symbol} starting from {start}...")
+    connector = DataConnector()
+    if connector.fetch_and_cache(symbol, start):
+        typer.echo(f"✅ Successfully cached {symbol}")
+    else:
+        typer.echo(f"❌ Failed to fetch data for {symbol}")
+
+@app.command()
+def ingest(file: str, symbol: str):
+    """Ingest custom CSV data into the research cache"""
+    typer.echo(f"📁 Ingesting {file} as {symbol}...")
+    connector = DataConnector()
+    if connector.ingest_custom_csv(file, symbol):
+        typer.echo(f"✅ Successfully ingested {symbol} from {file}")
+    else:
+        typer.echo(f"❌ Failed to ingest {file}")
+
+@app.command()
+def setup_data():
+    """Download default market data symbols (SPY, BTC, etc.)"""
+    typer.echo("📊 Preparing default research dataset...")
+    prepare_all_data()
 
 @app.command()
 def test():

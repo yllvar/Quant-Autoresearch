@@ -16,7 +16,8 @@ def test_route_request_success(mock_groq, router):
     # Mock successful API response
     mock_client = MagicMock()
     mock_groq.return_value = mock_client
-    router.client = mock_client
+    router.groq_client = mock_client
+    router.moonshot_client = mock_client
     
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Mocked response"))]
@@ -31,7 +32,8 @@ def test_route_request_success(mock_groq, router):
 def test_retry_logic(mock_groq, router):
     mock_client = MagicMock()
     mock_groq.return_value = mock_client
-    router.client = mock_client
+    router.groq_client = mock_client
+    router.moonshot_client = mock_client
     
     # Sequential side effects: Fail once, then succeed
     mock_response = MagicMock()

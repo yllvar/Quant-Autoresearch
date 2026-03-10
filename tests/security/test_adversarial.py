@@ -1,6 +1,6 @@
 import pytest
 import os
-from backtest_runner import walk_forward_validation
+from core.backtester import walk_forward_validation
 import sys
 from io import StringIO
 
@@ -32,14 +32,14 @@ class TradingStrategy:
     try:
         # This will fail during load or execution
         # But we want to see it doesn't crash the whole process
-        from backtest_runner import walk_forward_validation
+        from core.backtester import walk_forward_validation
         walk_forward_validation()
     except Exception as e:
         # If it crashes, it should be caught higher up in agent_runner
         pass
 
 def test_security_check_bypass_attempts():
-    from backtest_runner import security_check
+    from core.backtester import security_check
     
     bypass_code = """
 class TradingStrategy:
@@ -48,6 +48,6 @@ class TradingStrategy:
         return None
 """
     with open("strategy.py", "w") as f: f.write(bypass_code)
-    is_safe, msg = security_check()
+    is_safe, msg = security_check("strategy.py")
     assert not is_safe
     assert "Forbidden builtin function found: getattr" in msg

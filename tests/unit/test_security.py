@@ -1,7 +1,7 @@
 import pytest
 import os
 import ast
-from backtest_runner import security_check
+from core.backtester import security_check
 
 def create_strategy_file(content):
     with open("strategy.py", "w") as f:
@@ -15,7 +15,7 @@ class TradingStrategy:
         return pd.Series(1, index=data.index)
 """
     create_strategy_file(safe_code)
-    is_safe, msg = security_check()
+    is_safe, msg = security_check("strategy.py")
     assert is_safe
     assert msg == ""
 
@@ -27,7 +27,7 @@ class TradingStrategy:
         return None
 """
     create_strategy_file(evil_code)
-    is_safe, msg = security_check()
+    is_safe, msg = security_check("strategy.py")
     assert not is_safe
     assert "Forbidden builtin function found: exec" in msg
 
@@ -39,7 +39,7 @@ class TradingStrategy:
         return None
 """
     create_strategy_file(evil_code)
-    is_safe, msg = security_check()
+    is_safe, msg = security_check("strategy.py")
     assert not is_safe
     assert "Forbidden module import found: socket" in msg
 
@@ -56,7 +56,7 @@ class TradingStrategy:
         return {code}
 """
         create_strategy_file(content)
-        is_safe, msg = security_check()
+        is_safe, msg = security_check("strategy.py")
         assert not is_safe
         assert "Look-ahead bias detected" in msg
 
@@ -68,6 +68,6 @@ class TradingStrategy:
         return None
 """
     create_strategy_file(evil_code)
-    is_safe, msg = security_check()
+    is_safe, msg = security_check("strategy.py")
     assert not is_safe
     assert "Forbidden module import found: os" in msg

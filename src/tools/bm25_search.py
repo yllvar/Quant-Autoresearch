@@ -5,10 +5,7 @@ import sys
 import os
 from typing import Dict, Any, List, Optional
 
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from research_engine import get_research_context, search_arxiv, local_bm25_search
+from core.research import get_research_context, search_arxiv, local_bm25_search
 
 class BM25SearchTool:
     """Tool wrapper for BM25 search functionality"""

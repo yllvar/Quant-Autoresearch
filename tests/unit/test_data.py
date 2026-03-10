@@ -2,13 +2,13 @@ import pytest
 import os
 import pandas as pd
 from unittest.mock import patch, MagicMock
-from prepare_data import prepare_data, CACHE_DIR, SYMBOLS
+from data.preprocessor import prepare_data, CACHE_DIR, SYMBOLS
 
 def test_prepare_data_logic(tmp_path, monkeypatch):
     """Verifies that prepare_data downloads and calculates features correctly."""
     # Use tmp_path for cache
     cache_dir = tmp_path / "data_cache_test"
-    monkeypatch.setattr("prepare_data.CACHE_DIR", str(cache_dir))
+    monkeypatch.setattr("data.preprocessor.CACHE_DIR", str(cache_dir))
     
     # Mock CCXT
     mock_exchange = MagicMock()

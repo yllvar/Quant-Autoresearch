@@ -2,7 +2,7 @@ import pytest
 import os
 import json
 from unittest.mock import MagicMock, patch
-from research_engine import get_research_context, search_arxiv, CACHE_FILE
+from core.research import get_research_context, search_arxiv, CACHE_FILE
 
 def test_search_arxiv_mock(tmp_path, monkeypatch):
     """Verifies that search_arxiv correctly handles ArXiv results and caching."""
@@ -34,7 +34,7 @@ def test_search_arxiv_mock(tmp_path, monkeypatch):
 
 def test_get_research_context():
     """Verifies that the context string is formatted correctly."""
-    with patch("research_engine.search_arxiv") as mock_search:
+    with patch("core.research.search_arxiv") as mock_search:
         mock_search.return_value = [{
             "title": "Title A",
             "summary": "Summary A",
@@ -61,10 +61,11 @@ def test_local_bm25_search(tmp_path, monkeypatch):
             {"title": "Momentum Trading", "summary": "Trend following strategies", "url": "url3", "published": "2021"}
         ]
     }
+    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f)
         
-    from research_engine import local_bm25_search
+    from core.research import local_bm25_search
     
     # Search for something that matches 'Neural'
     results = local_bm25_search("neural finance")

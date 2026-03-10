@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from backtest_runner import run_backtest
+from core.backtester import run_backtest
 
 class MockStrategy:
     def generate_signals(self, data):
@@ -13,7 +13,7 @@ def test_run_backtest_sharpe_calculation(sample_data):
     data = {"TEST": sample_data}
     
     # We expect a positive Sharpe because returns are constant 0.001
-    sharpe, dd, trades = run_backtest(strategy, data, 10, 90)
+    sharpe, dd, trades, pval = run_backtest(strategy, data, 10, 90)
     
     assert isinstance(sharpe, float)
     assert sharpe > 0
@@ -30,7 +30,7 @@ def test_run_backtest_lookahead_enforcement(sample_data):
     data = {"TEST": sample_data}
     
     # The runner enforces lag by shifting the signals
-    sharpe, dd, trades = run_backtest(strategy, data, 10, 90)
+    sharpe, dd, trades, pval = run_backtest(strategy, data, 10, 90)
     
     # Even if the strategy "cheats", the runner should apply .shift(1)
     # This test verifies the runner doesn't crash and returns metrics.
@@ -48,7 +48,7 @@ def test_transaction_costs_impact(sample_data):
     
     # Run backtest
     # Higher costs should lead to lower Sharpe than a static strategy
-    sharpe, dd, trades = run_backtest(strategy, data, 10, 90)
+    sharpe, dd, trades, pval = run_backtest(strategy, data, 10, 90)
     
     assert trades > 0
     # With 0.001 daily return and 0.01 vol, but frequent 0.0005 cost + slippage

@@ -2,26 +2,29 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-import importlib.util
 import re
-
 import ast
+from RestrictedPython import compile_restricted, safe_builtins
+from RestrictedPython.Guards import safer_getattr, full_write_guard
+from RestrictedPython.Eval import default_guarded_getiter, default_guarded_getitem
+from data.connector import DataConnector
 
-CACHE_DIR = "data/cache"
-STRATEGY_FILE = "src/strategies/active_strategy.py"
+CACHE_DIR = os.environ.get("CACHE_DIR", "data/cache")
+STRATEGY_FILE = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("STRATEGY_FILE", "src/strategies/active_strategy.py")
 
 FORBIDDEN_BUILTINS = {'exec', 'eval', 'open', 'getattr', 'setattr', 'delattr'}
 FORBIDDEN_MODULES = {'socket', 'requests', 'urllib', 'os', 'sys', 'shutil', 'subprocess'}
 
-def security_check():
+def security_check(file_path: str = None):
     """
-    Performs security analysis on strategy.py using AST to find forbidden patterns.
+    Performs security analysis on a strategy file using AST to find forbidden patterns.
     """
-    if not os.path.exists(STRATEGY_FILE):
-        return False, "strategy.py not found"
+    target = file_path or STRATEGY_FILE
+    if not os.path.exists(target):
+        return False, f"Strategy file not found: {target}"
     
     try:
-        with open(STRATEGY_FILE, "r") as f:
+        with open(target, "r") as f:
             tree = ast.parse(f.read())
             
         for node in ast.walk(tree):
@@ -68,13 +71,34 @@ def is_negative_val(node):
     return False
 
 def load_data():
-    data = {}
-    for file in os.listdir(CACHE_DIR):
-        if file.endswith(".parquet"):
-            symbol = file.replace(".parquet", "").replace("_", "-")
-            df = pd.read_parquet(os.path.join(CACHE_DIR, file))
-            data[symbol] = df
-    return data
+    connector = DataConnector(CACHE_DIR)
+    return connector.load_all_cached()
+
+def monte_carlo_permutation_test(combined_returns, n_permutations=1000):
+    """
+    Performs a Monte Carlo permutation test to evaluate if the strategy's Sharpe
+    ratio is statistically significant compared to random behavior.
+    """
+    if len(combined_returns) == 0 or combined_returns.std() == 0:
+        return 1.0
+        
+    actual_sharpe = (combined_returns.mean() / combined_returns.std()) * np.sqrt(252)
+    
+    # Generate random permutations of the returns
+    permuted_sharpes = []
+    returns_values = combined_returns.values
+    for _ in range(n_permutations):
+        permuted_returns = np.random.permutation(returns_values)
+        std = permuted_returns.std()
+        if std > 0:
+            perm_sharpe = (permuted_returns.mean() / std) * np.sqrt(252)
+            permuted_sharpes.append(perm_sharpe)
+        else:
+            permuted_sharpes.append(0.0)
+            
+    # Calculate p-value (proportion of random sharpes >= actual sharpe)
+    p_value = np.sum(np.array(permuted_sharpes) >= actual_sharpe) / n_permutations
+    return p_value
 
 def run_backtest(strategy_instance, data, start_idx, end_idx):
     """
@@ -122,7 +146,7 @@ def run_backtest(strategy_instance, data, start_idx, end_idx):
         total_returns.append(net_returns)
         
     if not total_returns:
-        return -10.0
+        return -10.0, 0.0, 0, 1.0
         
     combined_returns = pd.concat(total_returns, axis=1).mean(axis=1)
     
@@ -138,6 +162,9 @@ def run_backtest(strategy_instance, data, start_idx, end_idx):
     drawdown = (cum_returns - running_max) / running_max
     max_drawdown = drawdown.min()
     
+    # Multi-tenant / Robustness point 1: Monte Carlo
+    p_value = monte_carlo_permutation_test(combined_returns)
+    
     # Total Trades (rough estimate sum across symbols)
     total_trades = 0
     for symbol, df in data.items():
@@ -149,7 +176,7 @@ def run_backtest(strategy_instance, data, start_idx, end_idx):
         except:
             pass
 
-    return sharpe, max_drawdown, total_trades
+    return sharpe, max_drawdown, total_trades, p_value
 
 def walk_forward_validation():
     is_safe, msg = security_check()
@@ -157,15 +184,46 @@ def walk_forward_validation():
         print(f"SECURITY ERROR: {msg}")
         sys.exit(1)
         
-    # Load Strategy
+    # Load Strategy via RestrictedPython Sandbox
     try:
-        spec = importlib.util.spec_from_file_location("strategy", STRATEGY_FILE)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        strategy_class = getattr(module, "TradingStrategy")
+        with open(STRATEGY_FILE, "r") as f:
+            strategy_lines = f.readlines()
+        
+        # Strip import statements for restricted execution
+        sanitized_code = []
+        for line in strategy_lines:
+            if not (line.strip().startswith("import ") or line.strip().startswith("from ")):
+                sanitized_code.append(line)
+        strategy_code = "".join(sanitized_code)
+        
+        # Define the restricted environment
+        safe_globals = {
+            '__builtins__': safe_builtins,
+            '_getattr_': safer_getattr,
+            '_write_': lambda x: x,
+            '_getiter_': default_guarded_getiter,
+            '_getitem_': default_guarded_getitem,
+            '__name__': 'sandbox',
+            '__metaclass__': type,
+            'pd': pd,
+            'np': np,
+        }
+        
+        # Compile the code in restricted mode
+        byte_code = compile_restricted(strategy_code, filename='strategy.py', mode='exec')
+        
+        # Execute in safe scope
+        sandbox_locals = {}
+        exec(byte_code, safe_globals, sandbox_locals)
+        
+        strategy_class = sandbox_locals.get("TradingStrategy")
+        if not strategy_class:
+            print("STRATEGY ERROR: TradingStrategy class not found in strategy.py")
+            sys.exit(1)
+            
         strategy_instance = strategy_class()
     except Exception as e:
-        print(f"STRATEGY LOAD ERROR: {e}")
+        print(f"STRATEGY LOAD ERROR (Restricted): {e}")
         sys.exit(1)
         
     data = load_data()
@@ -183,6 +241,7 @@ def walk_forward_validation():
     oos_sharpes = []
     oos_drawdowns = []
     oos_trades = []
+    oos_pvals = []
     
     for i in range(5):
         train_end = int((i + 1) * window_size * 0.7)
@@ -190,20 +249,23 @@ def walk_forward_validation():
         test_end = (i + 1) * window_size
         
         # We only care about OOS performance for the final score
-        sharpe, dd, trades = run_backtest(strategy_instance, data, test_start, test_end)
+        sharpe, dd, trades, p_val = run_backtest(strategy_instance, data, test_start, test_end)
         oos_sharpes.append(sharpe)
         oos_drawdowns.append(dd)
         oos_trades.append(trades)
+        oos_pvals.append(p_val)
         
     avg_oos_sharpe = np.mean(oos_sharpes)
     avg_oos_dd = np.mean(oos_drawdowns)
     total_oos_trades = np.sum(oos_trades)
+    avg_oos_pval = np.mean(oos_pvals)
     
     score = avg_oos_sharpe
         
     print(f"SCORE: {score:.4f}")
     print(f"DRAWDOWN: {avg_oos_dd:.4f}")
     print(f"TRADES: {int(total_oos_trades)}")
+    print(f"P-VALUE: {avg_oos_pval:.4f}")
 
 if __name__ == "__main__":
     walk_forward_validation()

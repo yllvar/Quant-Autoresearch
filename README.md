@@ -2,7 +2,7 @@
 
 <img width="2752" height="1536" alt="Quant Autoresearch Header" src="https://github.com/user-attachments/assets/5e84b668-c81f-4c41-bd0a-f4db95846b0d" />
 
-**Quant Autoresearch** is an institutional-grade, autonomous framework for quantitative strategy discovery. Based on the **OPENDEV** terminal-agent architecture, it treats alpha generation as a long-horizon **code evolution problem**.
+**Quant Autoresearch** is an autonomous framework for quantitative strategy discovery. Based on the **OPENDEV** terminal-agent architecture, it treats alpha generation as a long-horizon **code evolution problem**.
 
 Unlike traditional backtesters, this system deploys a compound AI ensemble that formulates hypotheses, analyzes academic literature (ArXiv), writes Python code, and validates performance in a secure, sandboxed environment.
 
@@ -21,6 +21,7 @@ A sandboxed validation layer implementing strict **Defense-in-Depth Safety**:
 *   **Walk-Forward Validation:** Prevents overfitting via rolling out-of-sample windows.
 *   **Forced Signal Lag:** Eliminates look-ahead bias by shifting signals by 1 bar.
 *   **Volatility-Adjusted Slippage:** Models realistic market impact during choppy regimes.
+*   **RestrictedPython Sandboxing:** Executes AI strategies in a hardened, non-virtualized sandbox. It strips all standard `import` statements and provides only `pd` and `np` in a safe global namespace, blocking access to `os`, `sys`, and other sensitive built-ins.
 
 ### 4. Adaptive Context Compaction (ACC)
 Ensures long-horizon autonomy by monitoring token pressure and automatically pruning or summarizing old observations to prevent context overflow.
@@ -52,7 +53,7 @@ Requires **Python 3.10+** and the **`uv`** package manager.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/quant-autoresearch.git
+git clone https://github.com/yllvar/quant-autoresearch.git
 cd quant-autoresearch
 
 # Install dependencies using uv

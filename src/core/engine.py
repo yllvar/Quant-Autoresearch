@@ -31,7 +31,8 @@ class QuantAutoresearchEngine:
     def __init__(self, safety_level: SafetyLevel = SafetyLevel.HIGH, 
                  max_context_percent: int = 95, thinking_model: str = "llama-3.1-8b-instant",
                  reasoning_model: str = "llama-3.3-70b-versatile", lazy_tools: bool = True,
-                 approval_mode: ApprovalMode = ApprovalMode.SEMI):
+                 approval_mode: ApprovalMode = ApprovalMode.SEMI,
+                 db_path: str = "experiments/database/playbook.db"):
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.safety_level = safety_level
         self.max_context_percent = max_context_percent
@@ -47,7 +48,7 @@ class QuantAutoresearchEngine:
         # OPENDEV components
         self.model_router = model_router
         self.tool_registry = LazyToolRegistry() if lazy_tools else None
-        self.playbook = Playbook()
+        self.playbook = Playbook(db_path=db_path)
         self.prompt_composer = PromptComposer()
         
         # Update model configurations if custom models are provided
@@ -63,6 +64,7 @@ class QuantAutoresearchEngine:
         self.program_file = "src/prompts/program.md"
         self.backtest_runner = "src/core/backtester.py"
         self.experiment_log = "experiments/results/experiment_log.json"
+        os.makedirs(os.path.dirname(self.experiment_log), exist_ok=True)
         
         # State tracking
         self.iteration_count = 0
@@ -80,7 +82,7 @@ class QuantAutoresearchEngine:
         with open(self.program_file, "r") as f:
             return f.read()
     
-    def run_backtest_with_output(self) -> Tuple[float, float, int, Dict]:
+    def run_backtest_with_output(self) -> Tuple[float, float, int, float, Dict]:
         """Execute backtest and parse results"""
         import subprocess
         
@@ -112,7 +114,12 @@ class QuantAutoresearchEngine:
         if match_trades:
             trades = int(match_trades.group(1))
             
-        return score, drawdown, trades, {"stdout": output, "stderr": error_output}
+        pval = 1.0
+        match_pval = re.search(r"P-VALUE:\s*([\d\.]+)", output)
+        if match_pval:
+            pval = float(match_pval.group(1))
+            
+        return score, drawdown, trades, pval, {"stdout": output, "stderr": error_output}
     
     def load_experiment_log(self) -> List[Dict]:
         """Load experiment history"""

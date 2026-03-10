@@ -128,9 +128,6 @@ class SafetyGuard:
                 "search_tools",
                 "write_file",
                 "run_command",
-                "search_research",
-                "analyze_data",
-                "validate_hypothesis",
                 "analyze_results",
                 "compare_strategies",
                 "generate_report"
