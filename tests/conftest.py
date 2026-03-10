@@ -2,6 +2,14 @@ import pytest
 import pandas as pd
 import numpy as np
 import os
+import sys
+from pathlib import Path
+
+# Add src and root to path
+root_dir = Path(__file__).parent.parent
+sys.path.append(str(root_dir))
+sys.path.append(str(root_dir / "src"))
+
 import shutil
 
 @pytest.fixture

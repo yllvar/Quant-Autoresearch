@@ -6,16 +6,16 @@ import re
 import ast
 from groq import Groq
 from dotenv import load_dotenv
-from research_engine import get_research_context
+from .research import get_research_context
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Configuration
-STRATEGY_FILE = "strategy.py"
-PROGRAM_FILE = "program.md"
-BACKTEST_RUNNER = "backtest_runner.py"
-EXPERIMENT_LOG = "experiment_log.json"
+STRATEGY_FILE = "src/strategies/active_strategy.py"
+PROGRAM_FILE = "src/prompts/program.md"
+BACKTEST_RUNNER = "src/core/backtester.py"
+EXPERIMENT_LOG = "experiments/results/experiment_log.json"
 # The API key is now loaded from the environment/ .env file
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -70,8 +70,9 @@ def save_experiment_log(log):
         json.dump(log, f, indent=2)
 
 def log_to_tsv(score, drawdown, trades, status, description):
-    file_exists = os.path.exists("results.tsv")
-    with open("results.tsv", "a") as f:
+    results_path = "experiments/results/results.tsv"
+    file_exists = os.path.exists(results_path)
+    with open(results_path, "a") as f:
         if not file_exists:
             f.write("commit\tscore\tdrawdown\ttrades\tstatus\tdescription\n")
         timestamp = subprocess.check_output(["date", "+%Y%m%d_%H%M%S"]).decode().strip()

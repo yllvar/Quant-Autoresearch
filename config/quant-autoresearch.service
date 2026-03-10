@@ -1,0 +1,15 @@
+[Unit]
+Description=Quant Autoresearch OPENDEV Engine
+After=network.target
+
+[Service]
+Type=simple
+User=apple
+WorkingDirectory=/Users/apple/quant-autoresearch
+EnvironmentFile=/Users/apple/quant-autoresearch/.env
+ExecStart=/Users/apple/quant-autoresearch/.venv/bin/python cli.py run --iterations 100 --safety high
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -7,8 +7,8 @@ import re
 
 import ast
 
-CACHE_DIR = "data_cache"
-STRATEGY_FILE = "strategy.py"
+CACHE_DIR = "data/cache"
+STRATEGY_FILE = "src/strategies/active_strategy.py"
 
 FORBIDDEN_BUILTINS = {'exec', 'eval', 'open', 'getattr', 'setattr', 'delattr'}
 FORBIDDEN_MODULES = {'socket', 'requests', 'urllib', 'os', 'sys', 'shutil', 'subprocess'}

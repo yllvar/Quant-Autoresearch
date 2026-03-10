@@ -182,6 +182,18 @@ class LazyToolRegistry:
                 "subagent_access": [SubagentType.FULL_ACCESS],
                 "risk_level": "high",
                 "handler": self._handle_run_command
+            },
+            "search_tools": {
+                "name": "search_tools",
+                "description": "Search for available tools and their schemas",
+                "parameters": {
+                    "query": {"type": "string", "description": "Search query for tools"},
+                    "max_results": {"type": "integer", "description": "Max tools to return", "default": 5}
+                },
+                "category": "meta",
+                "subagent_access": [SubagentType.PLANNER, SubagentType.EXECUTOR, SubagentType.ANALYZER],
+                "risk_level": "low",
+                "handler": self._handle_search_tools
             }
         })
     
@@ -238,7 +250,7 @@ class LazyToolRegistry:
             "query": query,
             "subagent_type": subagent_type.value,
             "total_matches": len(matching_tools),
-            "tools": matching_tools[:max_results]
+            "matches": matching_tools[:max_results]
         }
         
         # Cache result
@@ -250,7 +262,7 @@ class LazyToolRegistry:
             "query": query,
             "subagent_type": subagent_type.value,
             "matches_found": len(matching_tools),
-            "tools_returned": len(result["tools"])
+            "tools_returned": len(result["matches"])
         })
         
         return result
@@ -568,6 +580,13 @@ final_signals = signals * position_size
             "stderr": "",
             "execution_time": 0.5
         }
+
+    def _handle_search_tools(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle search_tools tool calling itself"""
+        return self.search_tools(
+            parameters.get("query", ""),
+            max_results=parameters.get("max_results", 5)
+        )
 
 # Global instance
 lazy_tool_registry = LazyToolRegistry()

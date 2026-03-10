@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 class IterationTracker:
     """Track and analyze iteration patterns and performance"""
     
-    def __init__(self, log_file: str = "iteration_log.json"):
+    def __init__(self, log_file: str = "experiments/results/iteration_log.json"):
         self.log_file = log_file
         self.iterations = []
         self.session_start = datetime.now()

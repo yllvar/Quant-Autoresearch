@@ -4,7 +4,7 @@ import json
 import os
 import re
 
-CACHE_FILE = "research_cache.json"
+CACHE_FILE = "experiments/results/research_cache.json"
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -20,11 +20,25 @@ def get_unique_papers():
     cache = load_cache()
     papers = []
     seen_urls = set()
+    
+    # Add papers from cache
     for query_results in cache.values():
         for p in query_results:
             if p["url"] not in seen_urls:
                 papers.append(p)
                 seen_urls.add(p["url"])
+    
+    # Add papers from local corpus
+    corpus_file = "data/bm25_papers.json"
+    if os.path.exists(corpus_file):
+        with open(corpus_file, "r") as f:
+            corpus_papers = json.load(f)
+            for p in corpus_papers:
+                if p["url"] not in seen_urls:
+                    p["source"] = "local_corpus"
+                    papers.append(p)
+                    seen_urls.add(p["url"])
+                    
     return papers
 
 def local_bm25_search(query, top_n=3):

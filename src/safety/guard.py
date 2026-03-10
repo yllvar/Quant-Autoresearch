@@ -115,22 +115,35 @@ class SafetyGuard:
                 "search_research",
                 "analyze_data", 
                 "validate_hypothesis",
-                "estimate_performance"
+                "estimate_performance",
+                "search_tools",
+                "view_file",
+                "list_dir"
             ],
             SubagentType.EXECUTOR: [
                 "generate_strategy_code",
                 "run_backtest",
                 "validate_strategy",
-                "optimize_parameters"
+                "optimize_parameters",
+                "search_tools",
+                "write_file",
+                "run_command",
+                "search_research",
+                "analyze_data",
+                "validate_hypothesis",
+                "analyze_results",
+                "compare_strategies",
+                "generate_report"
             ],
             SubagentType.ANALYZER: [
                 "analyze_results",
                 "compare_strategies",
                 "calculate_metrics",
-                "generate_report"
+                "generate_report",
+                "search_tools"
             ],
             SubagentType.FULL_ACCESS: [
-                # All tools available (use sparingly)
+                # All tools available
             ]
         }
     
@@ -557,14 +570,19 @@ class SafetyGuard:
                 if result["risk_level"] == "LOW":
                     result["risk_level"] = "MEDIUM"
     
-    def check_doom_loop(self, tool_fingerprint: str, history: List[str]) -> bool:
+    def check_doom_loop(self, tool_fingerprint: str, history: Optional[List[str]] = None) -> bool:
         """Enhanced doom-loop detection per OPENDEV paper"""
+        if history is None:
+            history = self.tool_history
+            
         # Add current fingerprint to history
         history.append(tool_fingerprint)
         
         # Keep only recent history (20-operation window)
         if len(history) > self.doom_loop_window:
-            history = history[-self.doom_loop_window:]
+            # We must modify the original list if using self.tool_history
+            while len(history) > self.doom_loop_window:
+                history.pop(0)
         
         # Count occurrences of this fingerprint in recent history
         recent_count = history.count(tool_fingerprint)

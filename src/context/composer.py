@@ -16,10 +16,10 @@ class PromptComposer:
         # Modular prompt sections (per OPENDEV paper)
         self.prompt_sections = {
             "identity": self._load_prompt_section("identity.md"),
-            "safety": self._load_prompt_section("safety.md"),
-            "tools": self._load_prompt_section("tools.md"),
-            "domain_rules": self._load_prompt_section("domain_rules.md"),
-            "git_workflow": self._load_prompt_section("git_workflow.md")
+            "safety_policy": self._load_prompt_section("safety_policy.md"),
+            "tool_guidance": self._load_prompt_section("tool_guidance.md"),
+            "quant_rules": self._load_prompt_section("quant_rules.md"),
+            "git_rules": self._load_prompt_section("git_rules.md")
         }
         
         # System reminders registry
@@ -32,9 +32,9 @@ class PromptComposer:
             "performance_decline": self._check_performance_decline
         }
         
-        # Context predicates for dynamic loading
+        # Context predicates for dynamic loading (per OPENDEV paper)
         self.context_predicates = {
-            "git_workflow": self._has_git_repository,
+            "git_rules": self._has_git_repository,
             "high_risk_tools": self._has_high_risk_operations,
             "research_mode": self._is_research_mode,
             "trading_mode": self._is_trading_mode
@@ -123,13 +123,13 @@ GOAL: Achieve an Average OOS Sharpe > 1.5.
     def _should_load_section(self, section_name: str, context: Dict[str, Any]) -> bool:
         """Check if section should be loaded based on context predicates"""
         
-        if section_name == "git_workflow":
-            return self.context_predicates["git_workflow"]()
+        if section_name == "git_rules":
+            return self.context_predicates["git_rules"]()
         
-        if section_name == "tools" and context.get("available_tools"):
+        if section_name == "tool_guidance" and context.get("available_tools"):
             return True
         
-        if section_name == "domain_rules":
+        if section_name == "quant_rules":
             return self.context_predicates["trading_mode"]() or self.context_predicates["research_mode"]()
         
         # Default: load if content exists
@@ -173,7 +173,13 @@ GOAL: Achieve an Average OOS Sharpe > 1.5.
         # Available tools
         if "available_tools" in context:
             injection_parts.append("## Available Tools")
-            injection_parts.append(", ".join(context["available_tools"]))
+            tools = []
+            for t in context["available_tools"]:
+                if isinstance(t, dict):
+                    tools.append(t.get("tool_name", t.get("name", str(t))))
+                else:
+                    tools.append(str(t))
+            injection_parts.append(", ".join(tools))
         
         return "\n\n".join(injection_parts)
     
@@ -271,6 +277,7 @@ GOAL: Achieve an Average OOS Sharpe > 1.5.
             prompt_parts.append("\n## Thinking Phase Instructions\nGenerate reasoning trace WITHOUT using any tools. Focus on analysis and planning.")
         elif prompt_type == "reasoning":
             prompt_parts.append("\n## Reasoning Phase Instructions\nBased on your thinking trace, decide what tools to use and execute the plan.")
+            prompt_parts.append("\nCRITICAL: You MUST output tool calls in JSON formatting within a code block. Example:\n```json\n[\n  {\"tool_name\": \"search_research\", \"parameters\": {\"query\": \"momentum strategy\"}}\n]\n```")
         
         return "\n".join(prompt_parts)
     
@@ -336,8 +343,8 @@ You are a specialized AI agent designed for quantitative trading research.
 ## Primary Objective
 Maximize risk-adjusted returns through systematic strategy evolution.
 """,
-            "safety.md": """
-# Safety Protocols
+            "safety_policy.md": """
+# Safety Policy
 
 ## Critical Constraints
 - No position sizes > 1.0
@@ -350,8 +357,8 @@ Maximize risk-adjusted returns through systematic strategy evolution.
 - Performance verification
 - Risk assessment before deployment
 """,
-            "tools.md": """
-# Available Tools
+            "tool_guidance.md": """
+# Tool Guidance
 
 ## Research Tools
 - search_research: Find academic papers
@@ -368,8 +375,8 @@ Maximize risk-adjusted returns through systematic strategy evolution.
 - compare_strategies: Benchmark alternatives
 - generate_report: Create documentation
 """,
-            "domain_rules.md": """
-# Trading Domain Rules
+            "quant_rules.md": """
+# Quantitative Rules
 
 ## Market Data Requirements
 - Use only historical data (no future information)
@@ -382,8 +389,8 @@ Maximize risk-adjusted returns through systematic strategy evolution.
 - Proper risk management
 - Realistic assumptions
 """,
-            "git_workflow.md": """
-# Git Integration Workflow
+            "git_rules.md": """
+# Git Rules
 
 ## Version Control
 - Commit strategy changes with descriptive messages

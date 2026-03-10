@@ -1,32 +1,54 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-worktrees/
-results/
-queue/
-
-# Agent prompt files (generated per-session by launchers)
-CLAUDE.md
-AGENTS.md
-
-# Experimental code/artifacts
-dev/
-.env
-__pycache__/
-*.log
-data_cache/
+*.py[c]
+*.py[o]
+*.pyd
+.Python
+env/
+venv/
 .venv/
-.pytest_cache/
-research_cache.json
-experiment_log.json
-results.tsv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
 .coverage
+.coverage.*
+.cache
+nosetests.xml
 coverage.xml
-htmlcov/
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.env.example
+
+# Large Data & Cache (Project Specific)
+data/cache/
+experiments/logs/
+experiments/results/
+experiments/database/
+artifacts/plots/
+*.log
+*.tsv
+*.json
+*.db
+!research_cache.json
+!experiment_log.json
+!results.tsv
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project
+wandb/
+.pytest_cache/
+.vincent/
+2603.05344v1_compressed.pdf

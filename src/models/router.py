@@ -4,8 +4,12 @@ Multi-model routing for OPENDEV architecture
 import os
 from typing import Dict, Any, Optional, List
 from groq import Groq
+from openai import OpenAI
 from dotenv import load_dotenv
 import tiktoken
+import logging
+from utils.logger import logger
+from utils.retries import retry_with_backoff
 
 load_dotenv()
 
@@ -13,36 +17,62 @@ class ModelRouter:
     """Multi-model routing for thinking vs reasoning phases"""
     
     def __init__(self):
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        # Clients
+        groq_key = os.getenv("GROQ_API_KEY")
+        moon_key = os.getenv("MOONSHOT_API_KEY")
+        
+        if not moon_key:
+            logger.warning("MOONSHOT_API_KEY not found in environment")
+            
+        self.groq_client = Groq(api_key=groq_key)
+        self.moonshot_client = OpenAI(
+            api_key=moon_key,
+            base_url="https://api.moonshot.cn/v1"
+        )
+        
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
         
         # Model configurations
         self.models = {
             "thinking": {
-                "primary": "llama-3.1-8b-instant",  # Fast, cheap for thinking
-                "fallback": "llama-3.3-70b-versatile",
+                "primary": os.getenv("THINKING_MODEL", "moonshot-v1-8k"),
+                "primary_provider": "moonshot" if os.getenv("MOONSHOT_API_KEY") else "groq",
+                "fallback": "llama-3.1-8b-instant",
+                "fallback_provider": "groq",
                 "max_tokens": 4096,
                 "temperature": 0.1
             },
             "reasoning": {
-                "primary": "llama-3.3-70b-versatile",  # Powerful for reasoning
-                "fallback": "mixtral-8x7b-32768",
+                "primary": os.getenv("REASONING_MODEL", "moonshot-v1-32k"),
+                "primary_provider": "moonshot" if os.getenv("MOONSHOT_API_KEY") else "groq",
+                "fallback": "llama-3.3-70b-versatile",
+                "fallback_provider": "groq",
                 "max_tokens": 8192,
                 "temperature": 0.3
             },
             "summarization": {
-                "primary": "llama-3.1-8b-instant",  # Cheap for summarization
-                "fallback": "llama-3.3-70b-versatile",
+                "primary": "moonshot-v1-8k",
+                "primary_provider": "moonshot" if os.getenv("MOONSHOT_API_KEY") else "groq",
+                "fallback": "llama-3.1-8b-instant",
+                "fallback_provider": "groq",
                 "max_tokens": 2048,
                 "temperature": 0.1
             }
         }
         
+        # Adjust primaries if Moonshot key is missing
+        if not os.getenv("MOONSHOT_API_KEY"):
+            self.models["thinking"]["primary"] = "llama-3.1-8b-instant"
+            self.models["reasoning"]["primary"] = "llama-3.3-70b-versatile"
+            self.models["summarization"]["primary"] = "llama-3.1-8b-instant"
+        
         # Cost tracking
         self.cost_per_1k = {
             "llama-3.1-8b-instant": 0.00005,
             "llama-3.3-70b-versatile": 0.0001,
-            "mixtral-8x7b-32768": 0.0003
+            "mixtral-8x7b-32768": 0.0003,
+            "moonshot-v1-8k": 0.0017,
+            "moonshot-v1-32k": 0.0034
         }
         
         self.usage_stats = {
@@ -52,20 +82,32 @@ class ModelRouter:
             "total_cost": 0.0
         }
     
+    def _get_client(self, provider: str):
+        """Get the appropriate client for the provider"""
+        if provider == "moonshot":
+            return self.moonshot_client
+        return self.groq_client
+
+    @retry_with_backoff(max_retries=3, exceptions=(Exception,))
     def route_request(self, phase: str, messages: List[Dict[str, str]], 
                      max_tokens: Optional[int] = None) -> Dict[str, Any]:
         """Route request to appropriate model based on phase"""
         
         model_config = self.models.get(phase, self.models["reasoning"])
         model_name = model_config["primary"]
+        provider = model_config["primary_provider"]
+        
+        logger.info(f"Routing {phase} request to {model_name} via {provider}")
         
         try:
             # Calculate tokens for cost estimation
             total_tokens = sum(len(self.tokenizer.encode(msg["content"])) for msg in messages)
             estimated_cost = (total_tokens / 1000) * self.cost_per_1k.get(model_name, 0.0001)
             
+            client = self._get_client(provider)
+            
             # Make API call
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
                 max_tokens=max_tokens or model_config["max_tokens"],
@@ -80,17 +122,26 @@ class ModelRouter:
                 "success": True,
                 "content": response.choices[0].message.content,
                 "model_used": model_name,
+                "provider": provider,
                 "phase": phase,
                 "tokens_used": total_tokens,
                 "estimated_cost": estimated_cost
             }
             
         except Exception as e:
+            logger.error(f"Primary model {model_name} on {provider} failed: {e}")
+            
             # Try fallback model
-            if model_config.get("fallback") and model_name != model_config["fallback"]:
+            fallback_model = model_config.get("fallback")
+            fallback_provider = model_config.get("fallback_provider", "groq")
+            
+            if fallback_model and (fallback_model != model_name or fallback_provider != provider):
                 try:
-                    response = self.client.chat.completions.create(
-                        model=model_config["fallback"],
+                    logger.info(f"Trying fallback: {fallback_model} via {fallback_provider}")
+                    client = self._get_client(fallback_provider)
+                    
+                    response = client.chat.completions.create(
+                        model=fallback_model,
                         messages=messages,
                         max_tokens=max_tokens or model_config["max_tokens"],
                         temperature=model_config["temperature"]
@@ -99,7 +150,8 @@ class ModelRouter:
                     return {
                         "success": True,
                         "content": response.choices[0].message.content,
-                        "model_used": model_config["fallback"],
+                        "model_used": fallback_model,
+                        "provider": fallback_provider,
                         "phase": phase,
                         "fallback_used": True,
                         "error": f"Primary model failed: {str(e)}"

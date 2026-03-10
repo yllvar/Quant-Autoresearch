@@ -12,7 +12,7 @@ import re
 class Playbook:
     """SQLite-based dual-memory system for storing successful strategy patterns"""
     
-    def __init__(self, db_path: str = "playbook.db"):
+    def __init__(self, db_path: str = "experiments/database/playbook.db"):
         self.db_path = db_path
         self._initialize_database()
         

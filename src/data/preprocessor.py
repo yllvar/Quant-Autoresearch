@@ -11,7 +11,7 @@ CRYPTO_MAP = {
     'ETH-USD': 'ETH/USDT'
 }
 START_DATE = "2020-01-01"
-CACHE_DIR = "data_cache"
+CACHE_DIR = "data/cache"
 
 def ensure_cache_dir():
     if not os.path.exists(CACHE_DIR):
