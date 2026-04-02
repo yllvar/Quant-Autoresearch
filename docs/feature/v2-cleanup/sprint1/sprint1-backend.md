@@ -102,7 +102,7 @@ python -c "from src.core.backtester import *; from src.strategies.active_strateg
 
 ### Completed Work
 
-- All 7 steps completed and committed (3f3b4a5, rebased onto fork/main as latest commit)
+- All 7 steps completed and committed (f7b4dcf refactor, 1d8f548 docs; rebased onto fork/main)
 - Deleted 9 files: engine.py, context/{__init__,compactor,composer}.py, safety/{__init__,guard}.py, tools/{__init__,registry,bm25_search}.py
 - Updated cli.py: removed all imports of deleted modules, preserved working commands (fetch, ingest, setup_data, research), stubbed V1-dependent commands (run, status, report, test)
 - 38 surviving tests pass; 13 test files have collection errors referencing deleted modules (Sprint 3 targets)
