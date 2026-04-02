@@ -20,7 +20,6 @@ class TradingStrategy:
         
         The 'data' contains: Close, returns, volatility, atr.
         """
-        # --- EDITABLE REGION BREAK ---
         # Calculate the Exponential Moving Average (EMA) of the Average True Range (ATR) to identify distinct market regimes
         # Reference: 'Exponential moving average versus moving exponential average' (https://arxiv.org/pdf/2001.04237v1)
         atr_ema = data['atr'].ewm(span=20, adjust=False).mean()
@@ -47,5 +46,4 @@ class TradingStrategy:
         # For simplicity, this example uses a basic switching mechanism based on ATR EMA
         signals[(high_vol_regime) & (roc < 0) & (slow_momentum > 0)] = 1
 
-        # --- EDITABLE REGION END ---
         return signals
