@@ -17,10 +17,10 @@ def test_score_determinism(sample_data):
     data = {"TEST": sample_data}
     
     # Run 1
-    sharpe1, dd1, trades1, _pval = run_backtest(strategy, data, 10, 90)
-    
+    sharpe1, dd1, trades1 = run_backtest(strategy, data, 10, 90)
+
     # Run 2
-    sharpe2, dd2, trades2, _pval = run_backtest(strategy, data, 10, 90)
+    sharpe2, dd2, trades2 = run_backtest(strategy, data, 10, 90)
     
     assert sharpe1 == sharpe2
     assert dd1 == dd2
@@ -33,12 +33,12 @@ def test_score_consistency_with_indicator_warmup(sample_data):
     data = {"TEST": sample_data}
     
     # Scenario A: Full history provided
-    sharpe_a, _, _, _pval = run_backtest(strategy, data, 20, 80)
-    
+    sharpe_a, _, _ = run_backtest(strategy, data, 20, 80)
+
     # Scenario B: Partial history provided (still before test window)
     # Note: run_backtest actually takes 'data' and 'end_idx' slices internally.
     # In backtest_runner.py, it slices df.iloc[:end_idx].
     # So we are testing if the logic inside run_backtest is deterministic.
-    
-    sharpe_b, _, _, _pval = run_backtest(strategy, data, 20, 80)
+
+    sharpe_b, _, _ = run_backtest(strategy, data, 20, 80)
     assert sharpe_a == sharpe_b
