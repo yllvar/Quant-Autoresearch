@@ -17,8 +17,8 @@ Phase 2 of the V2 upgrade. Removes all V1 components superseded by the program.m
 | [#3](https://github.com/ricoyudog/Quant-Autoresearch/issues/3) | 2.2: 移除 safety guard 和 tool registry | done |
 | [#4](https://github.com/ricoyudog/Quant-Autoresearch/issues/4) | 2.3: 移除 model router 和 token counter | done |
 | [#5](https://github.com/ricoyudog/Quant-Autoresearch/issues/5) | 2.4: 清理 prompts 目錄 | done |
-| [#6](https://github.com/ricoyudog/Quant-Autoresearch/issues/6) | 2.5: 移除舊架構相關測試 | pending |
-| [#7](https://github.com/ricoyudog/Quant-Autoresearch/issues/7) | 2.6: 更新 pyproject.toml 依賴 | pending |
+| [#6](https://github.com/ricoyudog/Quant-Autoresearch/issues/6) | 2.5: 移除舊架構相關測試 | done |
+| [#7](https://github.com/ricoyudog/Quant-Autoresearch/issues/7) | 2.6: 更新 pyproject.toml 依賴 | done |
 
 ## Execution Order
 
